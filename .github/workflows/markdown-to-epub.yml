@@ -41,8 +41,16 @@ jobs:
             if [ -z "$TITLE" ]; then
               TITLE="${file%.*}"
             fi
+            # Derive BCP 47 language code from the guide_<lang>.md suffix.
+            # Without this, pandoc picks up the C locale and writes an invalid
+            # <dc:language>C</dc:language>, which Send to Kindle rejects.
+            SUFFIX="${file#guide_}"; SUFFIX="${SUFFIX%.md}"
+            case "$SUFFIX" in
+              zh-tw) LANG_CODE="zh-TW" ;;
+              *) LANG_CODE="$SUFFIX" ;;
+            esac
             # Use -f markdown-yaml_metadata_block to avoid issues with --- in some files
-            pandoc "$file" -o "epub/${file%.*}.epub" -f markdown-yaml_metadata_block+lists_without_preceding_blankline --lua-filter .github/workflows/epub-pre-to-lines.lua --metadata title="$TITLE" --css .github/workflows/epub-style.css
+            pandoc "$file" -o "epub/${file%.*}.epub" -f markdown-yaml_metadata_block+lists_without_preceding_blankline --lua-filter .github/workflows/epub-pre-to-lines.lua --metadata title="$TITLE" --metadata lang="$LANG_CODE" --css .github/workflows/epub-style.css
           done
 
       - name: Commit EPUBs back to repo
